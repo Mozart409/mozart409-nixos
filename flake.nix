@@ -67,37 +67,44 @@
     caelestia-shell,
     disko,
   } @ inputs: let
-    # Helper function to generate host configurations
+    lib = nixpkgs.lib;
+    linuxSystem = "x86_64-linux";
+    darwinSystem = "x86_64-darwin";
+    username = "amadeus";
+
+    # Helper function to generate host configurations (system-agnostic)
     mkHost = hostname: system:
-      lib.nixosSystem {
-        inherit system;
-        specialArgs = {inherit inputs;};
-        modules = [
-          ./hosts/${hostname}/default.nix
-          home-manager.nixosModules.home-manager
-          {
-            nix.settings.trusted-users = ["amadeus"];
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.sharedModules = [inputs.nixvim.homeModules.nixvim];
-          }
-        ];
-      };
+      if system == linuxSystem then
+        lib.nixosSystem {
+          inherit system;
+          specialArgs = {inherit inputs username;};
+          modules = [
+            ./hosts/${hostname}/default.nix
+            home-manager.nixosModules.home-manager
+            {
+              nix.settings.trusted-users = [username];
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.sharedModules = [inputs.nixvim.homeModules.nixvim];
+            }
+          ];
+        }
+      else
+        throw "Host configuration for ${system} is not supported yet";
 
     # Helper function to generate home-manager configurations
     mkHome = hostname: system:
-      home-manager.lib.homeManagerConfiguration {
+      let
         pkgs = nixpkgs.legacyPackages.${system};
-        extraSpecialArgs = {inherit inputs;};
+      in
+      home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        extraSpecialArgs = {inherit inputs username;};
         modules = [
           ./hosts/${hostname}/home.nix
           inputs.nixvim.homeModules.nixvim
         ];
       };
-
-    lib = nixpkgs.lib;
-    linuxSystem = "x86_64-linux";
-    darwinSystem = "x86_64-darwin";
   in {
     # NixOS configurations for each host (Linux only)
     nixosConfigurations = {
@@ -109,31 +116,32 @@
 
     # Home-manager configurations for each user/host
     homeConfigurations = {
-      "amadeus@iso" = mkHome "iso" linuxSystem;
+      "${username}@iso" = mkHome "iso" linuxSystem;
       # Add more user/host combinations here:
-      # "amadeus@laptop" = mkHome "laptop" linuxSystem;
+      # "${username}@laptop" = mkHome "laptop" linuxSystem;
       # "user@server" = mkHome "server" linuxSystem;
     };
 
-    # Nixos Generator (Linux only)
+    # Nixos Generator (Linux only) - standalone ISO configuration
     iso = nixos-generators.nixosGenerate {
       system = linuxSystem;
+      format = "iso";
       modules = [
+        ./hosts/iso/default.nix
+        home-manager.nixosModules.home-manager
         ({pkgs, ...}: {
           # set disk size to to 20G
           virtualisation.diskSize = 20 * 1024;
           system.stateVersion = "25.11";
         })
-        ./hosts/iso/default.nix
-        home-manager.nixosModules.home-manager
         {
+          nix.settings.trusted-users = [username];
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.amadeus = import ./hosts/iso/home.nix;
+          home-manager.users.${username} = import ./hosts/iso/home.nix;
           home-manager.sharedModules = [inputs.nixvim.homeModules.nixvim];
         }
       ];
-      format = "iso";
     };
 
     # Colmena configuration for multi-host deployment (Linux only)
@@ -149,8 +157,10 @@
 
     # Development shells for both Linux and Darwin
     devShells = {
-      ${linuxSystem}.default = nixpkgs.legacyPackages.${linuxSystem}.mkShell {
-        buildInputs = with nixpkgs.legacyPackages.${linuxSystem}; [
+      ${linuxSystem}.default = let
+        pkgs = nixpkgs.legacyPackages.${linuxSystem};
+      in pkgs.mkShell {
+        buildInputs = with pkgs; [
           git
           nh
           alejandra
@@ -166,8 +176,10 @@
         '';
       };
 
-      ${darwinSystem}.default = nixpkgs.legacyPackages.${darwinSystem}.mkShell {
-        buildInputs = with nixpkgs.legacyPackages.${darwinSystem}; [
+      ${darwinSystem}.default = let
+        pkgs = nixpkgs.legacyPackages.${darwinSystem};
+      in pkgs.mkShell {
+        buildInputs = with pkgs; [
           git
           alejandra
         ];
@@ -177,6 +189,33 @@
           echo "Note: NixOS-specific features are not available on macOS."
         '';
       };
+    };
+
+    # Flake checks for CI validation
+    checks = {
+      ${linuxSystem} = {
+        # Check NixOS configuration builds
+        nixos-iso = self.nixosConfigurations.iso.config.system.build.toplevel;
+        
+        # Check home-manager configuration builds
+        home-amadeus-iso = self.homeConfigurations."${username}@iso".activationPackage;
+        
+        # Check flake formatting
+        formatting = let
+          pkgs = nixpkgs.legacyPackages.${linuxSystem};
+        in pkgs.runCommand "check-formatting" {
+          buildInputs = [pkgs.alejandra];
+        } ''
+          alejandra --check ${./.}
+          touch $out
+        '';
+      };
+    };
+
+    # Formatter for consistent code formatting
+    formatter = {
+      ${linuxSystem} = nixpkgs.legacyPackages.${linuxSystem}.alejandra;
+      ${darwinSystem} = nixpkgs.legacyPackages.${darwinSystem}.alejandra;
     };
   };
 }
