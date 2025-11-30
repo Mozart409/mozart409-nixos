@@ -7,8 +7,6 @@
 }: {
   imports = [
     ./hardware-configuration.nix
-    ./home.nix
-    ../common/btrfs.nix
     ../common/locale.nix
     ../common/nix-settings.nix
   ];
@@ -54,6 +52,9 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.timeout = 10;
+
+  # Home-manager configuration
+  home-manager.users.amadeus.home.stateVersion = "25.11";
 
   # System state version
   system.stateVersion = "25.11";
