@@ -47,7 +47,7 @@
       url = "github:caelestia-dots/shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-disko = {
+    disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -64,6 +64,7 @@ disko = {
     hyprland-plugins,
     quickshell,
     caelestia-shell,
+    disko,
   } @ inputs: let
     # Helper function to generate host configurations
     mkHost = hostname: system:
@@ -163,4 +164,3 @@ disko = {
     };
   };
 }
-

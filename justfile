@@ -15,3 +15,6 @@ switch hostname:
 
 iso: clear
     nix build .#iso
+
+clear:
+    clear
