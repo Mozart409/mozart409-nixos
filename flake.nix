@@ -110,28 +110,24 @@
     };
 
     # Nixos Generator
-    minimal-pve = nixos-generators.nixosGenerate {
+    iso = nixos-generators.nixosGenerate {
       system = "x86_64-linux";
       modules = [
         ({pkgs, ...}: {
           # set disk size to to 20G
           virtualisation.diskSize = 20 * 1024;
           system.stateVersion = "25.11";
-          /*
-             users.defaultUserShell = pkgs.zsh;
-          environment.shells = with pkgs; [zsh];
-          */
         })
-        ./hosts/minimal/default.nix
+        ./hosts/iso/default.nix
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.amadeus = import ./hosts/minimal/home.nix;
+          home-manager.users.amadeus = import ./hosts/iso/home.nix;
           home-manager.sharedModules = [inputs.nixvim.homeModules.nixvim];
         }
       ];
-      format = "proxmox-lxc";
+      format = "iso";
     };
 
     # Colmena configuration for multi-host deployment
