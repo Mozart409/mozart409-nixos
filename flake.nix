@@ -96,27 +96,28 @@
       };
 
     lib = nixpkgs.lib;
-    system = "x86_64-linux";
+    linuxSystem = "x86_64-linux";
+    darwinSystem = "x86_64-darwin";
   in {
-    # NixOS configurations for each host
+    # NixOS configurations for each host (Linux only)
     nixosConfigurations = {
-      iso = mkHost "iso" system;
+      iso = mkHost "iso" linuxSystem;
       # Add more hosts here:
-      # laptop = mkHost "laptop" system;
-      # server = mkHost "server" system;
+      # laptop = mkHost "laptop" linuxSystem;
+      # server = mkHost "server" linuxSystem;
     };
 
     # Home-manager configurations for each user/host
     homeConfigurations = {
-      "amadeus@iso" = mkHome "iso" system;
+      "amadeus@iso" = mkHome "iso" linuxSystem;
       # Add more user/host combinations here:
-      # "amadeus@laptop" = mkHome "laptop" system;
-      # "user@server" = mkHome "server" system;
+      # "amadeus@laptop" = mkHome "laptop" linuxSystem;
+      # "user@server" = mkHome "server" linuxSystem;
     };
 
-    # Nixos Generator
+    # Nixos Generator (Linux only)
     iso = nixos-generators.nixosGenerate {
-      system = "x86_64-linux";
+      system = linuxSystem;
       modules = [
         ({pkgs, ...}: {
           # set disk size to to 20G
@@ -135,33 +136,47 @@
       format = "iso";
     };
 
-    # Colmena configuration for multi-host deployment
+    # Colmena configuration for multi-host deployment (Linux only)
     colmenaHive = colmena.lib.makeHive {
       meta = {
         nixpkgs = import nixpkgs {
-          system = "x86_64-linux";
+          system = linuxSystem;
           config.allowUnfree = true;
         };
         specialArgs = {inherit inputs;};
       };
     };
 
-    # Development shell for working with this configuration
-    devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
-      buildInputs = with nixpkgs.legacyPackages.${system}; [
-        git
-        nh
-        alejandra
-        colmena.packages.${system}.colmena
-      ];
-      shellHook = ''
-        echo "Welcome to the NixOS configuration development shell!"
-        echo "Available commands:"
-        echo "  nix flake check .#nixosConfigurations.wotan"
-        echo "  nix flake check .#homeConfigurations.amadeus@wotan"
-        echo "  sudo nixos-rebuild switch --flake .#wotan"
-        echo "  home-manager switch --flake .#amadeus@wotan"
-      '';
+    # Development shells for both Linux and Darwin
+    devShells = {
+      ${linuxSystem}.default = nixpkgs.legacyPackages.${linuxSystem}.mkShell {
+        buildInputs = with nixpkgs.legacyPackages.${linuxSystem}; [
+          git
+          nh
+          alejandra
+          colmena.packages.${linuxSystem}.colmena
+        ];
+        shellHook = ''
+          echo "Welcome to the NixOS configuration development shell!"
+          echo "Available commands:"
+          echo "  nix flake check .#nixosConfigurations.iso"
+          echo "  nix flake check .#homeConfigurations.amadeus@iso"
+          echo "  sudo nixos-rebuild switch --flake .#iso"
+          echo "  home-manager switch --flake .#amadeus@iso"
+        '';
+      };
+
+      ${darwinSystem}.default = nixpkgs.legacyPackages.${darwinSystem}.mkShell {
+        buildInputs = with nixpkgs.legacyPackages.${darwinSystem}; [
+          git
+          alejandra
+        ];
+        shellHook = ''
+          echo "Welcome to the NixOS configuration development shell (Darwin)!"
+          echo "This shell provides tools for working with the configuration."
+          echo "Note: NixOS-specific features are not available on macOS."
+        '';
+      };
     };
   };
 }
