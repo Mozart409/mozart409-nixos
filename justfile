@@ -21,3 +21,6 @@ clear:
 
 fmt: clear
     alejandra .
+
+check: clear
+    nix flake check

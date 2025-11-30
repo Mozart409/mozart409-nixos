@@ -73,8 +73,12 @@
         specialArgs = {inherit inputs;};
         modules = [
           ./hosts/${hostname}/default.nix
+          home-manager.nixosModules.home-manager
           {
             nix.settings.trusted-users = ["amadeus"];
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.sharedModules = [inputs.nixvim.homeModules.nixvim];
           }
         ];
       };

@@ -14,4 +14,6 @@
     ../../home/nixvim/nixvim.nix
     ../../home/terminals/alacritty.nix
   ];
+
+  home.stateVersion = "25.11";
 }

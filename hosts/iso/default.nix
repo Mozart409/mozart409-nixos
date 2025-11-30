@@ -54,7 +54,7 @@
   boot.loader.timeout = 10;
 
   # Home-manager configuration
-  home-manager.users.amadeus.home.stateVersion = "25.11";
+  home-manager.users.amadeus = import ./home.nix;
 
   # System state version
   system.stateVersion = "25.11";
