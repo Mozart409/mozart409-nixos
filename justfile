@@ -14,7 +14,10 @@ switch hostname:
     sudo nixos-rebuild switch --flake .#{{hostname}}
 
 iso: clear
-    nix build .#iso
+    nix build .#iso --system x86_64-linux
 
 clear:
     clear
+
+fmt: clear
+    alejandra .

@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: {
-  import = [
+  imports = [
     ../../home/git.nix
     ../../home/shared.nix
     ../../home/tmux.nix

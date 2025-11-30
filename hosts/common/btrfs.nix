@@ -4,6 +4,7 @@
   disk ? "/dev/vda",
   withSwap ? false,
   swapSize,
+  disko,
   ...
 }: {
   disko.devices = {
